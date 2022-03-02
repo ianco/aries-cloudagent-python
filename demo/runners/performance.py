@@ -97,17 +97,21 @@ class BaseAgent(DemoAgent):
             self.ping_state[thread_id] = payload["state"]
             self.ping_event.set()
 
-    async def check_received_creds(self) -> Tuple[int, int]:
+    async def check_received_creds(self) -> Tuple[int, int, int]:
         while True:
             self.credential_event.clear()
             pending = 0
+            errors = 0
             total = len(self.credential_state)
             for result in self.credential_state.values():
-                if result != "done":
+                if result == "abandoned" or result is None:
+                    print(f">>> result: {result}")
+                    errors += 1
+                elif result != "done":
                     pending += 1
             if self.credential_event.is_set():
                 continue
-            return pending, total
+            return pending, total, errors
 
     async def update_creds(self):
         await self.credential_event.wait()
@@ -415,8 +419,8 @@ async def main(
             reported = 0
             iter_pb = iter(pb) if pb else None
             while True:
-                pending, total = await agent.check_received_creds()
-                complete = total - pending
+                pending, total, errors = await agent.check_received_creds()
+                complete = total - (pending - errors)
                 if reported == complete:
                     await asyncio.wait_for(agent.update_creds(), 30)
                     continue
@@ -427,7 +431,7 @@ async def main(
                     except StopIteration:
                         iter_pb = None
                 reported = complete
-                if reported == issue_count:
+                if reported == issue_count or errors > 0:
                     break
 
         async def send_ping(index: int):
