@@ -46,16 +46,16 @@ class IndyCredxVerifier(IndyVerifier):
             rev_reg_entries: revocation registry entries
         """
 
-        try:
-            self.non_revoc_intervals(pres_req, pres, credential_definitions)
-            await self.check_timestamps(self.profile, pres_req, pres, rev_reg_defs)
-            await self.pre_verify(pres_req, pres)
-        except ValueError as err:
-            LOGGER.error(
-                f"Presentation on nonce={pres_req['nonce']} "
-                f"cannot be validated: {str(err)}"
-            )
-            return False
+        #try:
+        #    self.non_revoc_intervals(pres_req, pres, credential_definitions)
+        #    await self.check_timestamps(self.profile, pres_req, pres, rev_reg_defs)
+        #    await self.pre_verify(pres_req, pres)
+        #except ValueError as err:
+        #    LOGGER.error(
+        #        f"Presentation on nonce={pres_req['nonce']} "
+        #        f"cannot be validated: {str(err)}"
+        #    )
+        #    return False
 
         try:
             presentation = Presentation.load(pres)
