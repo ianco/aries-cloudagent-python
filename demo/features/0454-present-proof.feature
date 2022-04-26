@@ -137,3 +137,27 @@ Feature: RFC 0454 Aries agent present proof
       Examples:
          | issuer1 | Acme1_capabilities        | issuer2 | Acme2_capabilities | Bob_cap | Schema_name_1     | Credential_data_1 | Schema_name_2 | Credential_data_2 | Proof_request                    |
          | Acme1   | --revocation --public-did | Acme2   | --public-did       |         | driverslicense_v2 | Data_DL_MaxValues | health_id     | Data_DL_MaxValues | DL_age_over_19_v2_with_health_id |
+
+   @T004-RFC0454
+   Scenario Outline: Present Proof for multiple credentials for different issuers with the same schema and different proof requests
+      Given we have "5" agents
+         | name  | role     | capabilities |
+         | Acme1 | issuer1  | <Acme_cap>   |
+         | Acme2 | issuer2  | <Acme_cap>   |
+         | Acme3 | issuer3  | <Acme_cap>   |
+         | Faber | verifier | <Acme_cap>   |
+         | Bob   | prover   | <Bob_cap>    |
+      And "<issuer1>" and "Bob" have an existing connection
+      And "Bob" has an issued <Schema_name_1> credential <Cred_data_1> from "<issuer1>"
+      And "<issuer2>" and "Bob" have an existing connection
+      And "Bob" has an issued <Schema_name_2> credential <Cred_data_2> from "<issuer2>"
+      And "<issuer3>" and "Bob" have an existing connection
+      And "Bob" has an issued <Schema_name_3> credential <Cred_data_3> from "<issuer2>"
+      And "Faber" and "Bob" have an existing connection
+      When "Faber" sends a request for proof presentation <Proof_request> to "Bob"
+      Then "Faber" has the proof verified
+
+      Examples:
+         | issuer1 | Acme_cap     | issuer2 | issuer3 | Bob_cap | Schema_name_1 | Cred_data_1 | Schema_name_2 | Cred_data_2 | Schema_name_3 | Cred_data_3 | Proof_request  |
+         | Acme1   | --public-did | Acme2   | Acme3   |         | person_1_v2   | person_1    | person_2_v2   | person_2    | person_3_v2   | person_3    | person_proof_1 |
+         | Acme1   | --public-did | Acme2   | Acme3   |         | person_1_v2   | person_1    | person_2_v2   | person_2    | person_3_v2   | person_3    | person_proof_2 |

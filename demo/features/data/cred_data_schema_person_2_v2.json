@@ -1,0 +1,53 @@
+{
+   "person_2": {
+      "cred_name":"Data_Person_2_v2_2",
+      "schema_name":"Schema_Person_2_v2",
+      "schema_version":"1.0.1",
+      "attributes":[
+         {
+            "name":"given_names",
+            "value":"Mary Sue"
+         },
+         {
+            "name":"surname",
+            "value":"Smythe"
+         },
+         {
+            "name":"name",
+            "value":"Mary Sue Smythe"
+         },
+         {
+            "name":"given_name",
+            "value":"Mary"
+         },
+         {
+            "name":"last_name",
+            "value":"Smythe"
+         },
+         {
+            "name":"birthdate_dateint",
+            "value":"954609875"
+         },
+         {
+            "name":"birth_dateint",
+            "value":"954609875"
+         },
+         {
+            "name":"date_of_birth",
+            "value":"2000-04-01"
+         }
+      ],
+      "filters": {
+         "indy": {
+            "cred_def_id": "replace_me",
+            "issuer_did": "replace_me",
+            "schema_id": "replace_me",
+            "schema_issuer_did": "replace_me",
+            "schema_name": "Schema_Person_2_v2",
+            "schema_version": "1.0.1"
+         },
+         "json-ld": {
+         }
+      }
+   }
+}

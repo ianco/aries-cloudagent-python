@@ -1,0 +1,53 @@
+{
+   "person_1": {
+      "cred_name":"Data_Person_1_v2_1",
+      "schema_name":"Schema_Person_1_v2",
+      "schema_version":"1.0.1",
+      "attributes":[
+         {
+            "name":"given_names",
+            "value":"Joe Bob"
+         },
+         {
+            "name":"surname",
+            "value":"Smith"
+         },
+         {
+            "name":"name",
+            "value":"Joe Bob Smith"
+         },
+         {
+            "name":"given_name",
+            "value":"Joe"
+         },
+         {
+            "name":"last_name",
+            "value":"Smith"
+         },
+         {
+            "name":"birthdate_dateint",
+            "value":"922987348"
+         },
+         {
+            "name":"birth_dateint",
+            "value":"922987348"
+         },
+         {
+            "name":"date_of_birth",
+            "value":"1999-04-01"
+         }
+      ],
+      "filters": {
+         "indy": {
+            "cred_def_id": "replace_me",
+            "issuer_did": "replace_me",
+            "schema_id": "replace_me",
+            "schema_issuer_did": "replace_me",
+            "schema_name": "Schema_Person_1_v2",
+            "schema_version": "1.0.1"
+         },
+         "json-ld": {
+         }
+      }
+   }
+}

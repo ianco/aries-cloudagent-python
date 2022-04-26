@@ -1,0 +1,53 @@
+{
+   "person_3": {
+      "cred_name":"Data_Person_3_v2_1",
+      "schema_name":"Schema_Person_3_v2",
+      "schema_version":"1.0.1",
+      "attributes":[
+         {
+            "name":"given_names",
+            "value":"Frankenstein"
+         },
+         {
+            "name":"surname",
+            "value":"Monster"
+         },
+         {
+            "name":"name",
+            "value":"Frankenstein Monster"
+         },
+         {
+            "name":"given_name",
+            "value":"Frankenstein"
+         },
+         {
+            "name":"last_name",
+            "value":"Monster"
+         },
+         {
+            "name":"birthdate_dateint",
+            "value":"7838675"
+         },
+         {
+            "name":"birth_dateint",
+            "value":"7838675"
+         },
+         {
+            "name":"date_of_birth",
+            "value":"1970-04-01"
+         }
+      ],
+      "filters": {
+         "indy": {
+            "cred_def_id": "replace_me",
+            "issuer_did": "replace_me",
+            "schema_id": "replace_me",
+            "schema_issuer_did": "replace_me",
+            "schema_name": "Schema_Person_3_v2",
+            "schema_version": "1.0.1"
+         },
+         "json-ld": {
+         }
+      }
+   }
+}

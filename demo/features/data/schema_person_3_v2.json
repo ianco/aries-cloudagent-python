@@ -1,0 +1,17 @@
+{
+   "schema":{
+      "schema_name":"Schema_Person_3_v2",
+      "schema_version":"1.0.1",
+      "attributes":[
+         "given_names",
+         "surname",
+         "name",
+         "given_name",
+         "last_name",
+         "birthdate_dateint",
+         "birth_dateint",
+         "date_of_birth"
+      ]
+   },
+   "cred_def_support_revocation":false
+}
