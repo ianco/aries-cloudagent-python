@@ -1,9 +1,9 @@
 - id: localLedger
   is_production: true
-  is_write: true
   genesis_url: 'http://host.docker.internal:9000/genesis'
 - id: bcorvinTest
   is_production: true
+  is_write: true
   genesis_url: 'http://test.bcovrin.vonx.io/genesis'
 - id: greenlightTest
   is_production: true
