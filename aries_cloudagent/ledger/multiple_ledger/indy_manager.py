@@ -3,6 +3,7 @@ import asyncio
 import concurrent.futures
 import logging
 import json
+import traceback
 
 from collections import OrderedDict
 from typing import Optional, Tuple, Mapping
@@ -130,6 +131,8 @@ class MultiIndyLedgerManager(BaseMultipleLedgerManager):
         self, did: str, cache_did: bool = True
     ) -> Tuple[str, IndySdkLedger]:
         """Lookup given DID in configured ledgers in parallel."""
+        print(">>> lookup ledger by did:", did)
+        traceback.print_stack()
         self.cache = self.profile.inject_or(BaseCache)
         cache_key = f"did_ledger_id_resolver::{did}"
         if bool(cache_did and self.cache and await self.cache.get(cache_key)):

@@ -9,6 +9,8 @@ from io import StringIO
 from os import path
 from time import time
 from typing import TYPE_CHECKING, List, Tuple, Optional
+import traceback
+import sys
 
 import indy.ledger
 import indy.pool
@@ -279,6 +281,7 @@ class IndySdkLedger(BaseLedger):
         self.pool = pool
         self.profile = profile
         print(">>> creating ledger with profile:", profile)
+        traceback.print_stack()
 
     @property
     def pool_handle(self):
