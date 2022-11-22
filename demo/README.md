@@ -21,8 +21,8 @@ There are several demos available for ACA-Py mostly (but not only) aimed at deve
 - [Additional Options in the Alice/Faber demo](#additional-options-in-the-alicefaber-demo)
   - [Revocation](#revocation)
   - [Mediation](#mediation)
-  - [Multi-tenancy](#multi-tenancy)
   - [Multi-ledger](#multi-ledger)
+  - [Multi-tenancy](#multi-tenancy)
   - [DID Exchange](#did-exchange)
   - [Endorser](#endorser)
   - [Run Indy-SDK Backend](#run-indy-sdk-backend)
@@ -265,16 +265,6 @@ To enable mediation, run the `alice` or `faber` demo with the `--mediation` opti
 
 This will start up a second "mediator" agent and automatically set the alice/faber connection to use the mediator.
 
-### Multi-tenancy
-
-To enable support for multi-tenancy, run the `alice` or `faber` demo with the `--multitenant` option:
-
-```bash
-./run_demo faber --multitenant
-```
-
-(This option can be used with both (or either) `alice` and/or `faber`.)
-
 ### Multi-ledger
 
 To enable multiple ledger mode, run the `alice` or `faber` demo with the `--multi-ledger` option:
@@ -284,6 +274,16 @@ To enable multiple ledger mode, run the `alice` or `faber` demo with the `--mult
 ```
 
 The configuration file for setting up multiple ledgers (for the demo) can be found at `./demo/multiple_ledger_config.yml`.
+
+### Multi-tenancy
+
+To enable support for multi-tenancy, run the `alice` or `faber` demo with the `--multitenant` option:
+
+```bash
+./run_demo faber --multitenant
+```
+
+(This option can be used with both (or either) `alice` and/or `faber`.)
 
 You will see an additional menu option to create new sub-wallets (or they can be considered to be "virtual agents").
 

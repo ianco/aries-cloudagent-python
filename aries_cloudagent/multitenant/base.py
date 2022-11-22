@@ -342,6 +342,7 @@ class BaseMultitenantManager(ABC):
 
         wallet_id = token_body.get("wallet_id")
         wallet_key = token_body.get("wallet_key")
+        print(">>> get profile for wallet:", wallet_id, wallet_key)
         iat = token_body.get("iat")
 
         async with self._profile.session() as session:
@@ -357,6 +358,7 @@ class BaseMultitenantManager(ABC):
             raise MultitenantManagerError("Token not valid")
 
         profile = await self.get_wallet_profile(context, wallet, extra_settings)
+        print(">>> returning wallet profile:", profile)
 
         return profile
 

@@ -170,6 +170,7 @@ class InboundSession:
                 profile = await multitenant_mgr.get_wallet_profile(
                     self.profile.context, wallet
                 )
+                print(">>> transport session profile:", profile)
 
                 base_responder: AdminResponder = profile.inject(BaseResponder)
 

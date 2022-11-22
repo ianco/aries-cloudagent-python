@@ -183,6 +183,7 @@ class IndySdkProfileManager(ProfileManager):
         self, context: InjectionContext, config: Mapping[str, Any] = None
     ) -> Profile:
         """Provision a new instance of a profile."""
+        print(">>> provision wallet:", config)
         indy_config = IndyWalletConfig(config)
         opened = await indy_config.create_wallet()
         return IndySdkProfile(opened, context)
@@ -191,6 +192,7 @@ class IndySdkProfileManager(ProfileManager):
         self, context: InjectionContext, config: Mapping[str, Any] = None
     ) -> Profile:
         """Open an instance of an existing profile."""
+        print(">>> open wallet:", config)
         indy_config = IndyWalletConfig(config)
         opened = await indy_config.open_wallet()
         return IndySdkProfile(opened, context)

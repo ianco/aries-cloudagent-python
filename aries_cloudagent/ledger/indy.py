@@ -278,6 +278,7 @@ class IndySdkLedger(BaseLedger):
         """
         self.pool = pool
         self.profile = profile
+        print(">>> creating ledger with profile:", profile)
 
     @property
     def pool_handle(self):
@@ -325,6 +326,7 @@ class IndySdkLedger(BaseLedger):
 
     async def get_wallet_public_did(self) -> DIDInfo:
         """Fetch the public DID from the wallet."""
+        print(">>> ledger profile =", self.profile)
         async with self.profile.session() as session:
             wallet = session.inject(BaseWallet)
             return await wallet.get_public_did()
@@ -400,6 +402,9 @@ class IndySdkLedger(BaseLedger):
                         )
                     )
             if write_ledger:
+                print(">>> sign_and_submit_request:", sign_did.did, request_json)
+                print(">>> pool handle:", self.pool.handle)
+                print(">>> wallet handle:", self.profile.wallet.handle)
                 submit_op = indy.ledger.sign_and_submit_request(
                     self.pool.handle,
                     self.profile.wallet.handle,
@@ -679,11 +684,13 @@ class IndySdkLedger(BaseLedger):
         """
         nym = self.did_to_nym(did)
         public_info = await self.get_wallet_public_did()
+        print(">>> ledger get wallet public did() =", public_info)
         public_did = public_info.did if public_info else None
         with IndyErrorHandler("Exception building nym request", LedgerError):
             request_json = await indy.ledger.build_get_nym_request(public_did, nym)
         response_json = await self._submit(request_json, sign_did=public_info)
         data_json = (json.loads(response_json))["result"]["data"]
+        print(">>> ledger did info =", data_json)
         return full_verkey(did, json.loads(data_json)["verkey"]) if data_json else None
 
     async def get_all_endpoints_for_did(self, did: str) -> dict:

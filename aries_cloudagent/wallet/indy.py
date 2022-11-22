@@ -670,6 +670,7 @@ class IndySdkWallet(BaseWallet):
                 except WalletNotFoundError:
                     pass
 
+        print(">>> wallet public did info:", public_did)
         return public_info
 
     async def set_public_did(self, did: Union[str, DIDInfo]) -> DIDInfo:
@@ -732,6 +733,7 @@ class IndySdkWallet(BaseWallet):
                 'endpoint' affects local wallet
         """
         did_info = await self.get_local_did(did)
+        print(">>> in wallet, self.get_local_did() =", did_info)
         if did_info.method != SOV:
             raise WalletError("Setting DID endpoint is only allowed for did:sov DIDs")
 
@@ -742,6 +744,7 @@ class IndySdkWallet(BaseWallet):
             metadata[endpoint_type.indy] = endpoint
 
         wallet_public_didinfo = await self.get_public_did()
+        print(">>> in wallet, self.get_public_did() =", wallet_public_didinfo)
         if (
             wallet_public_didinfo and wallet_public_didinfo.did == did
         ) or did_info.metadata.get("posted"):
@@ -751,17 +754,22 @@ class IndySdkWallet(BaseWallet):
                     f"No ledger available but DID {did} is public: missing wallet-type?"
                 )
             if not ledger.read_only:
-                async with ledger:
-                    attrib_def = await ledger.update_endpoint_for_did(
-                        did,
-                        endpoint,
-                        endpoint_type,
-                        write_ledger=write_ledger,
-                        endorser_did=endorser_did,
-                        routing_keys=routing_keys,
-                    )
-                    if not write_ledger:
-                        return attrib_def
+                try:
+                    async with ledger:
+                        attrib_def = await ledger.update_endpoint_for_did(
+                            did,
+                            endpoint,
+                            endpoint_type,
+                            write_ledger=write_ledger,
+                            endorser_did=endorser_did,
+                            routing_keys=routing_keys,
+                        )
+                        if not write_ledger:
+                            return attrib_def
+                except Exception as e:
+                    # swallow errors, for testing
+                    print(">>> got exception:", e)
+                    raise e
 
         await self.replace_local_did_metadata(did, metadata)
 

@@ -81,6 +81,8 @@ class MultitenantManager(BaseMultitenantManager):
 
             # MTODO: add ledger config
             profile, _ = await wallet_config(context, provision=provision)
+            print(">>> multi set wallet:", wallet_id, profile)
+            print(">>> multi set context:", wallet_id, context)
             self._profiles.put(wallet_id, profile)
 
         return profile

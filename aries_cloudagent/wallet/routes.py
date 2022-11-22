@@ -407,10 +407,12 @@ async def wallet_get_public_did(request: web.BaseRequest):
     info = None
     async with context.session() as session:
         wallet = session.inject_or(BaseWallet)
+        print(">>> get did from wallet:", wallet)
         if not wallet:
             raise web.HTTPForbidden(reason="No wallet available")
         try:
             info = await wallet.get_public_did()
+            print(">>> got public did from wallet:", info)
         except WalletError as err:
             raise web.HTTPBadRequest(reason=err.roll_up) from err
 
@@ -434,6 +436,7 @@ async def wallet_set_public_did(request: web.BaseRequest):
         The updated DID info
 
     """
+    print(">>> set public did for wallet")
     context: AdminRequestContext = request["context"]
     session = await context.session()
 
@@ -463,6 +466,7 @@ async def wallet_set_public_did(request: web.BaseRequest):
     did = request.query.get("did")
     if not did:
         raise web.HTTPBadRequest(reason="Request query must include DID")
+    print(">>> set public did for wallet:", wallet, did)
 
     info: DIDInfo = None
 
@@ -482,7 +486,7 @@ async def wallet_set_public_did(request: web.BaseRequest):
         info, attrib_def = await promote_wallet_public_did(
             context.profile,
             context,
-            context.session,
+            context.profile.session,
             did,
             write_ledger=write_ledger,
             connection_id=connection_id,
@@ -538,6 +542,8 @@ async def promote_wallet_public_did(
     mediator_endpoint: str = None,
 ) -> DIDInfo:
     """Promote supplied DID to the wallet public DID."""
+    print(">>> Promote supplied DID to the wallet public DID.", did)
+    print(">>> profile:", profile)
     info: DIDInfo = None
     endorser_did = None
     ledger = profile.inject_or(BaseLedger)
@@ -548,6 +554,7 @@ async def promote_wallet_public_did(
         raise PermissionError(reason)
 
     async with ledger:
+        print(">>> call ledger.get_key_for_did() for did:", did)
         if not await ledger.get_key_for_did(did):
             raise LookupError(f"DID {did} is not posted to the ledger")
 
@@ -591,17 +598,23 @@ async def promote_wallet_public_did(
     did_info: DIDInfo = None
     attrib_def = None
     async with session_fn() as session:
+        print(">>> passed as session:", session)
         wallet = session.inject_or(BaseWallet)
+        print(">>> get initial session wallet =", wallet)
         did_info = await wallet.get_local_did(did)
+        print(">>> get initial session wallet did =", did_info)
         info = await wallet.set_public_did(did_info)
+        print(">>> set initial session wallet public did =", info)
 
     if info:
         # Publish endpoint if necessary
+        print(">>> public did endpoint ...")
         endpoint = did_info.metadata.get("endpoint")
 
         if not endpoint:
             async with session_fn() as session:
                 wallet = session.inject_or(BaseWallet)
+                print(">>> get session wallet for endpoint =", wallet)
                 endpoint = mediator_endpoint or context.settings.get("default_endpoint")
                 attrib_def = await wallet.set_did_endpoint(
                     info.did,

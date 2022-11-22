@@ -605,12 +605,17 @@ class DemoAgent:
         if public_did:
             if cred_type == CRED_FORMAT_INDY:
                 # assign public did
+                log_msg("Create new DID for sub-wallet ...")
                 new_did = await self.admin_POST("/wallet/did/create")
+                log_msg(f" ... created new DID {new_did}")
                 self.did = new_did["result"]["did"]
+                log_msg("Register new DID on ledger ...")
                 await self.register_did(
                     did=new_did["result"]["did"],
                     verkey=new_did["result"]["verkey"],
                 )
+                log_msg(f" ... registered new DID {new_did}")
+                log_msg("Promote new DID to wallet's public DID ...")
                 if self.endorser_role and self.endorser_role == "author":
                     if endorser_agent:
                         await self.admin_POST("/wallet/did/public?did=" + self.did)
@@ -618,6 +623,7 @@ class DemoAgent:
                 else:
                     await self.admin_POST("/wallet/did/public?did=" + self.did)
                     await asyncio.sleep(3.0)
+                log_msg(f" ... promoted new public DID {new_did}")
             elif cred_type == CRED_FORMAT_JSON_LD:
                 # create did of appropriate type
                 data = {"method": DID_METHOD_KEY, "options": {"key_type": KEY_TYPE_BLS}}

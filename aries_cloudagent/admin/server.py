@@ -359,6 +359,7 @@ class AdminServer(BaseAdminServer):
                         path,
                     )
                     or path.startswith("/mediation/default-mediator")
+                    or path.startswith("/wallet")
                     or self._matches_additional_routes(path)
                 )
 
@@ -370,6 +371,7 @@ class AdminServer(BaseAdminServer):
                     and not is_server_path
                     and not is_unprotected_path(path)
                     and not base_limited_access_path
+                    and not (request.method == "OPTIONS")# CORS fix
                 ):
                     raise web.HTTPUnauthorized()
 
@@ -381,6 +383,7 @@ class AdminServer(BaseAdminServer):
         async def setup_context(request: web.Request, handler):
             authorization_header = request.headers.get("Authorization")
             profile = self.root_profile
+            print(">>> root profile =", profile)
 
             # Multitenancy context setup
             if self.multitenant_manager and authorization_header:
@@ -394,6 +397,7 @@ class AdminServer(BaseAdminServer):
                     profile = await self.multitenant_manager.get_profile_for_token(
                         self.context, token
                     )
+                    print(">>> set profile for multi-token:", profile)
                 except MultitenantManagerError as err:
                     raise web.HTTPUnauthorized(reason=err.roll_up)
                 except (jwt.InvalidTokenError, StorageNotFoundError):
@@ -409,6 +413,7 @@ class AdminServer(BaseAdminServer):
             # TODO may dynamically adjust the profile used here according to
             # headers or other parameters
             admin_context = AdminRequestContext(profile)
+            print(">>> admin context:", admin_context)
 
             request["context"] = admin_context
             request["outbound_message_router"] = responder.send
