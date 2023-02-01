@@ -389,13 +389,15 @@ class IndySdkLedger(BaseLedger):
             if taa_accept:
                 acceptance = await self.get_latest_txn_author_acceptance()
                 if acceptance:
-                    request_json = await indy.ledger.append_txn_author_agreement_acceptance_to_request(
-                        request_json,
-                        acceptance["text"],
-                        acceptance["version"],
-                        acceptance["digest"],
-                        acceptance["mechanism"],
-                        acceptance["time"],
+                    request_json = await (
+                        indy.ledger.append_txn_author_agreement_acceptance_to_request(
+                            request_json,
+                            acceptance["text"],
+                            acceptance["version"],
+                            acceptance["digest"],
+                            acceptance["mechanism"],
+                            acceptance["time"],
+                        )
                     )
             if write_ledger:
                 submit_op = indy.ledger.sign_and_submit_request(
