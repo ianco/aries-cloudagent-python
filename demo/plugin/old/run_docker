@@ -1,0 +1,34 @@
+#!/bin/bash
+
+docker build -t aca-py-audit -f ./Dockerfile.run . 
+
+ARGS=""
+for PORT in $PORTS; do
+  ARGS="${ARGS} -p $PORT"
+done
+
+PTVSD_PORT="${PTVSD_PORT-5678}"
+
+for arg in $@; do
+  if [ "$arg" = "--debug" ]; then
+    ENABLE_PTVSD=1
+  fi
+done
+if [ ! -z "${ENABLE_PTVSD}" ]; then
+  ARGS="${ARGS} -e ENABLE_PTVSD=\"${ENABLE_PTVSD}\" -p $PTVSD_PORT:$PTVSD_PORT"
+fi
+
+ARGS="${ARGS} -v /$(pwd)/../logs:/home/indy/logs"
+
+if [ ! -z "${WEBHOOK_URL}" ]; then
+  ARGS="${ARGS} -e WEBHOOK_URL=\"${WEBHOOK_URL}\""
+fi
+
+if [ "$OSTYPE" == "msys" ]; then
+  DOCKER="winpty docker"
+else
+  DOCKER="docker"
+fi
+
+RAND_NAME=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+$DOCKER run --rm -ti -p 7021:7021 --name "aca-py-audit-runner_${RAND_NAME}" $ARGS aca-py-audit "$@"
