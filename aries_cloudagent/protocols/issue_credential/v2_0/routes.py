@@ -207,8 +207,20 @@ class V20IssueCredSchemaCore(AdminAPIMessageTracingSchema):
     comment = fields.Str(
         description="Human-readable comment", required=False, allow_none=True
     )
-
-    credential_preview = fields.Nested(V20CredPreviewSchema, required=False)
+    credential_preview = fields.Nested(
+        V20CredPreviewSchema,
+        required=False,
+        example={
+            "@type": "issue-credential/2.0/credential-preview",
+            "attributes": [
+                {
+                    "mime-type": "image/jpeg",
+                    "name": "favourite_drink",
+                    "value": "martini",
+                }
+            ],
+        },
+    )
 
     @validates_schema
     def validate(self, data, **kwargs):
@@ -266,6 +278,13 @@ class V20CredRequestFreeSchema(AdminAPIMessageTracingSchema):
         allow_none=True,
         example="did:key:ahsdkjahsdkjhaskjdhakjshdkajhsdkjahs",
     )
+    multiple_credential_flow = fields.Bool(
+        description=(
+            "Flag to indicate if this request is being created as part of "
+            "multiple credential issuance flow"
+        ),
+        required=False,
+    )
 
 
 class V20CredExFreeSchema(V20IssueCredSchemaCore):
@@ -291,6 +310,30 @@ class V20CredBoundOfferRequestSchema(OpenAPISchema):
         V20CredPreviewSchema,
         required=False,
         description="Optional content for counter-proposal",
+        example={
+            "@type": "issue-credential/2.0/credential-preview",
+            "attributes": {
+                "indy-0": [
+                    {
+                        "mime-type": "image/jpeg",
+                        "name": "favourite_drink",
+                        "value": "martini",
+                    },
+                    {
+                        "mime-type": "image/jpeg",
+                        "name": "favourite_drink",
+                        "value": "martini",
+                    },
+                ]
+            },
+        },
+    )
+    multiple_available = fields.Int(
+        strict=True,
+        description=(
+            "Count of verifiable credentials of the indicated type available for issuance"
+        ),
+        required=False,
     )
 
     @validates_schema
@@ -321,6 +364,13 @@ class V20CredOfferRequestSchema(V20IssueCredSchemaCore):
         ),
         required=False,
     )
+    multiple_available = fields.Int(
+        strict=True,
+        description=(
+            "Count of verifiable credentials of the indicated type available for issuance"
+        ),
+        required=False,
+    )
 
 
 class V20CredOfferConnFreeRequestSchema(V20IssueCredSchemaCore):
@@ -330,6 +380,13 @@ class V20CredOfferConnFreeRequestSchema(V20IssueCredSchemaCore):
         description=(
             "Whether to respond automatically to credential requests, creating "
             "and issuing requested credentials"
+        ),
+        required=False,
+    )
+    multiple_available = fields.Int(
+        strict=True,
+        description=(
+            "Count of verifiable credentials of the indicated type available for issuance"
         ),
         required=False,
     )
@@ -344,6 +401,19 @@ class V20CredRequestRequestSchema(OpenAPISchema):
         allow_none=True,
         example="did:key:ahsdkjahsdkjhaskjdhakjshdkajhsdkjahs",
     )
+    excluded_attach_ids = fields.List(
+        fields.Str(description="Attachment identifier"),
+        description="Attachment identifiers, all of which to exclude",
+        required=False,
+        data_key="excludeAttachmentIDs",
+    )
+    multiple_credential_flow = fields.Bool(
+        description=(
+            "Flag to indicate if this request is being created as part of "
+            "multiple credential issuance flow"
+        ),
+        required=False,
+    )
 
 
 class V20CredIssueRequestSchema(OpenAPISchema):
@@ -351,6 +421,13 @@ class V20CredIssueRequestSchema(OpenAPISchema):
 
     comment = fields.Str(
         description="Human-readable comment", required=False, allow_none=True
+    )
+    more_available = fields.Int(
+        strict=True,
+        description=(
+            "Count of verifiable credentials of the indicated type willing to issue"
+        ),
+        required=False,
     )
 
 
@@ -384,7 +461,7 @@ def _formats_filters(filt_spec: Mapping) -> Mapping:
             "formats": [
                 V20CredFormat(
                     attach_id=fmt_api,
-                    format_=ATTACHMENT_FORMAT[CRED_20_PROPOSAL][fmt_api],
+                    format_=ATTACHMENT_FORMAT[CRED_20_PROPOSAL][fmt_api.split("-")[0]],
                 )
                 for fmt_api in filt_spec
             ],
@@ -802,6 +879,7 @@ async def _create_free_offer(
     preview_spec: dict = None,
     comment: str = None,
     trace_msg: bool = None,
+    multiple_available: int = 1,
 ):
     """Create a credential offer and related exchange record."""
 
@@ -830,6 +908,7 @@ async def _create_free_offer(
     (cred_ex_record, cred_offer_message) = await cred_manager.create_offer(
         cred_ex_record,
         comment=comment,
+        multiple_available=multiple_available,
     )
 
     return (cred_ex_record, cred_offer_message)
@@ -869,6 +948,7 @@ async def credential_exchange_create_free_offer(request: web.BaseRequest):
     comment = body.get("comment")
     preview_spec = body.get("credential_preview")
     filt_spec = body.get("filter")
+    multiple_available = body.get("multiple_available")
     if not filt_spec:
         raise web.HTTPBadRequest(reason="Missing filter")
     trace_msg = body.get("trace")
@@ -882,6 +962,9 @@ async def credential_exchange_create_free_offer(request: web.BaseRequest):
             preview_spec=preview_spec,
             comment=comment,
             trace_msg=trace_msg,
+            multiple_available=multiple_available
+            if multiple_available and isinstance(multiple_available, int)
+            else 1,
         )
         result = cred_ex_record.serialize()
     except (
@@ -943,6 +1026,7 @@ async def credential_exchange_send_free_offer(request: web.BaseRequest):
     comment = body.get("comment")
     preview_spec = body.get("credential_preview")
     trace_msg = body.get("trace")
+    multiple_available = body.get("multiple_available")
 
     cred_ex_record = None
     conn_record = None
@@ -961,6 +1045,9 @@ async def credential_exchange_send_free_offer(request: web.BaseRequest):
             preview_spec=preview_spec,
             comment=comment,
             trace_msg=trace_msg,
+            multiple_available=multiple_available
+            if multiple_available and isinstance(multiple_available, int)
+            else 1,
         )
         result = cred_ex_record.serialize()
 
@@ -1026,6 +1113,7 @@ async def credential_exchange_send_bound_offer(request: web.BaseRequest):
     body = await request.json() if request.body_exists else {}
     filt_spec = body.get("filter")
     preview_spec = body.get("counter_preview")
+    multiple_available = body.get("multiple_available")
 
     cred_ex_id = request.match_info["cred_ex_id"]
     cred_ex_record = None
@@ -1065,6 +1153,9 @@ async def credential_exchange_send_bound_offer(request: web.BaseRequest):
             if preview_spec
             else None,
             comment=None,
+            multiple_available=multiple_available
+            if multiple_available and isinstance(multiple_available, int)
+            else 1,
         )
 
         result = cred_ex_record.serialize()
@@ -1139,6 +1230,7 @@ async def credential_exchange_send_free_request(request: web.BaseRequest):
     auto_remove = body.get("auto_remove")
     trace_msg = body.get("trace")
     holder_did = body.get("holder_did")
+    multiple_credential_flow = body.get("multiple_credential_flow") or False
 
     conn_record = None
     cred_ex_record = None
@@ -1171,6 +1263,7 @@ async def credential_exchange_send_free_request(request: web.BaseRequest):
             cred_ex_record=cred_ex_record,
             holder_did=holder_did,
             comment=comment,
+            multiple_credential_flow=multiple_credential_flow,
         )
 
         result = cred_ex_record.serialize()
@@ -1229,12 +1322,16 @@ async def credential_exchange_send_bound_request(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     profile = context.profile
     outbound_handler = request["outbound_message_router"]
+    excluded_attach_ids = []
 
     try:
         body = await request.json() or {}
         holder_did = body.get("holder_did")
+        excluded_attach_ids = body.get("excludeAttachmentIDs", [])
+        multiple_credential_flow = body.get("multiple_credential_flow") or False
     except JSONDecodeError:
         holder_did = None
+        multiple_credential_flow = False
 
     cred_ex_id = request.match_info["cred_ex_id"]
 
@@ -1278,8 +1375,10 @@ async def credential_exchange_send_bound_request(request: web.BaseRequest):
 
         cred_manager = V20CredManager(profile)
         cred_ex_record, cred_request_message = await cred_manager.create_request(
-            cred_ex_record,
-            holder_did,
+            cred_ex_record=cred_ex_record,
+            holder_did=holder_did,
+            exclude_attach_ids=excluded_attach_ids,
+            multiple_credential_flow=multiple_credential_flow,
         )
 
         result = cred_ex_record.serialize()
@@ -1344,6 +1443,7 @@ async def credential_exchange_issue(request: web.BaseRequest):
 
     body = await request.json()
     comment = body.get("comment")
+    more_available = body.get("more_available")
 
     cred_ex_id = request.match_info["cred_ex_id"]
 
@@ -1373,6 +1473,9 @@ async def credential_exchange_issue(request: web.BaseRequest):
         (cred_ex_record, cred_issue_message) = await cred_manager.issue_credential(
             cred_ex_record,
             comment=comment,
+            more_available=more_available
+            if more_available and isinstance(more_available, int)
+            else 0,
         )
 
         details = await _get_attached_credentials(profile, cred_ex_record)
