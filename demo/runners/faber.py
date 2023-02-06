@@ -172,7 +172,9 @@ class FaberAgent(AriesAgent):
         else:
             raise Exception(f"Error invalid AIP level: {self.aip}")
 
-    def generate_multi_credential_offers(self, cred_type, cred_def_id, exchange_tracing):
+    def generate_multi_credential_offers(
+        self, cred_type, cred_def_id, exchange_tracing
+    ):
         age = 24
         d = datetime.date.today()
         birth_date = datetime.date(d.year - age, d.month, d.day)
@@ -211,15 +213,14 @@ class FaberAgent(AriesAgent):
             filters = {}
             i = 0
             for cred_attrs in self.multi_cred_attrs[cred_def_id]:
-                attributes = [
-                    {"name": n, "value": v}
-                    for (n, v) in cred_attrs.items()
-                ]
+                attributes = [{"name": n, "value": v} for (n, v) in cred_attrs.items()]
                 cred_preview["attributes"][f"indy-{i}"] = attributes
-                formats.append({
-                    "attach_id": f"indy-{i}",
-                    "format": "hlindy/cred-req@v2.0",
-                })
+                formats.append(
+                    {
+                        "attach_id": f"indy-{i}",
+                        "format": "hlindy/cred-abstract@v2.0",
+                    }
+                )
                 filters[f"indy-{i}"] = {"cred_def_id": cred_def_id}
                 i += 1
             offer_request = {
@@ -237,8 +238,9 @@ class FaberAgent(AriesAgent):
         elif cred_type == CRED_FORMAT_JSON_LD:
             offer_request = {
                 "connection_id": self.connection_id,
+                "multiple_available": 2,
                 "filter": {
-                    "ld_proof": {
+                    "ld_proof-0": {
                         "credential": {
                             "@context": [
                                 "https://www.w3.org/2018/credentials/v1",
@@ -262,7 +264,32 @@ class FaberAgent(AriesAgent):
                             },
                         },
                         "options": {"proofType": SIG_TYPE_BLS},
-                    }
+                    },
+                    "ld_proof-1": {
+                        "credential": {
+                            "@context": [
+                                "https://www.w3.org/2018/credentials/v1",
+                                "https://w3id.org/citizenship/v1",
+                                "https://w3id.org/security/bbs/v1",
+                            ],
+                            "type": [
+                                "VerifiableCredential",
+                                "PermanentResident",
+                            ],
+                            "id": "https://credential.example.com/residents/1234567890",
+                            "issuer": self.did,
+                            "issuanceDate": "2020-01-01T12:00:00Z",
+                            "credentialSubject": {
+                                "type": ["PermanentResident"],
+                                "givenName": "BOB",
+                                "familyName": "SMITH",
+                                "gender": "Male",
+                                "birthCountry": "Canada",
+                                "birthDate": "1957-08-19",
+                            },
+                        },
+                        "options": {"proofType": SIG_TYPE_BLS},
+                    },
                 },
             }
             return offer_request
@@ -640,7 +667,6 @@ async def main(args):
                             f"Error invalid credential type: {faber_agent.cred_type}"
                         )
 
-                    print(">>> posting with:", json.dumps(offer_request))
                     await faber_agent.agent.admin_POST(
                         "/issue-credential-2.0/send-offer", offer_request
                     )
@@ -651,17 +677,21 @@ async def main(args):
             elif option == "1m":
                 if faber_agent.aip == 20:
                     if faber_agent.cred_type == CRED_FORMAT_INDY:
-                        offer_request = faber_agent.agent.generate_multi_credential_offers(
-                            faber_agent.cred_type,
-                            faber_agent.cred_def_id,
-                            exchange_tracing,
+                        offer_request = (
+                            faber_agent.agent.generate_multi_credential_offers(
+                                faber_agent.cred_type,
+                                faber_agent.cred_def_id,
+                                exchange_tracing,
+                            )
                         )
 
                     elif faber_agent.cred_type == CRED_FORMAT_JSON_LD:
-                        offer_request = faber_agent.agent.generate_multi_credential_offers(
-                            faber_agent.cred_type,
-                            None,
-                            exchange_tracing,
+                        offer_request = (
+                            faber_agent.agent.generate_multi_credential_offers(
+                                faber_agent.cred_type,
+                                None,
+                                exchange_tracing,
+                            )
                         )
 
                     else:

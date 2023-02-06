@@ -246,6 +246,7 @@ class AriesAgent(DemoAgent):
 
         elif state == "offer-received":
             log_status("#15 After receiving credential offer, send credential request")
+            print(">>> message:", message)
             if message["by_format"]["cred_offer"].get("indy"):
                 await self.admin_POST(
                     f"/issue-credential-2.0/records/{cred_ex_id}/send-request"
