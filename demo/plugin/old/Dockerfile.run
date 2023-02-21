@@ -1,6 +1,0 @@
-FROM bcgovimages/aries-cloudagent:py36-1.16-1_1.0.0-rc1
-
-COPY ./message_families .
-RUN pip install ./audit_proof
-
-ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]

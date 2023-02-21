@@ -1,4 +1,0 @@
-aiohttp
-aiohttp_apispec
-marshmallow==3.5.1
-aries_cloudagent==1.0.0-rc1
