@@ -292,7 +292,7 @@ class AdminServer(BaseAdminServer):
 
         middlewares = [ready_middleware, debug_middleware, validation_middleware]
 
-        # admin-token and admin-token are mutually exclusive and required.
+        # admin-insecure and admin-token are mutually exclusive and required.
         # This should be enforced during parameter parsing but to be sure,
         # we check here.
         assert self.admin_insecure_mode ^ bool(self.admin_api_key)
@@ -422,6 +422,11 @@ class AdminServer(BaseAdminServer):
             return await handler(request)
 
         middlewares.append(setup_context)
+
+        # TODO check for middlewares supplied by plug-ins and append to "middlewares"
+        # plugin_registry = self.context.inject_or(PluginRegistry)
+        # if plugin_registry:
+        #     await plugin_registry.register_admin_middlewares(middlewares)
 
         app = web.Application(
             middlewares=middlewares,
