@@ -84,7 +84,7 @@ sequenceDiagram
     ArgParse->>settings:  ["external_plugins"]
     ArgParse->>settings:  ["blocked_plugins"]
 
-    StartUp->>+Conductor: setup()
+    Startup->>+Conductor: setup()
       Note right of Conductor: Each configured plug-in is validated and loaded
       Conductor->>DefaultContext:  build_context()
       DefaultContext->>DefaultContext:  load_plugins()
@@ -121,11 +121,11 @@ sequenceDiagram
       Note right of Conductor: If the admin server is enabled, plug-in routes are added
       Conductor->>AdminServer:  create admin server if enabled
 
-    StartUp->>Conductor: start()
+    Startup->>Conductor: start()
       Conductor->>Conductor:  start_transports()
       Conductor->>AdminServer:  start()
 
-    StartUp->>AdminServer:  setup_context() (called on each request)
+    Startup->>AdminServer:  setup_context() (called on each request)
       AdminServer->>PluginRegistry:  register_admin_routes()
       loop for each external plug-in
         PluginRegistry->>ExternalPlugIn:  routes.register() (to register endpoints)
