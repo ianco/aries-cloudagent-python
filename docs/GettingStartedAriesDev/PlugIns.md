@@ -85,7 +85,9 @@ sequenceDiagram
     ArgParse->>settings:  ["blocked_plugins"]
 
     Note right of Startup: Each configured plug-in is validated and loaded
-    Startup->>+DefaultContext:  build_context()
+    Startup->>+DefaultContext
+    StartUp->>+Conductor: setup()
+      Conductor->>DefaultContext:  build_context()
       DefaultContext->>DefaultContext:  load_plugins()
       DefaultContext->>+PluginRegistry:  register_package() (for built-in protocols)
         PluginRegistry->>PluginRegistry:  register_plugin() (for each sub-package)
@@ -115,13 +117,20 @@ sequenceDiagram
 	      PluginRegistry->>PluginRegistry:  register_protocol_events()
 	    end
 
-	Note right of Startup: If the admin server is enabled, plug-in routes are added
-	Startup->>AdminServer:  create admin server if enabled
-	Startup->>AdminServer:  setup_context() (called on each request)
-	  AdminServer->>PluginRegistry:  register_admin_routes()
-	  loop for each external plug-in
-	    PluginRegistry->>ExternalPlugIn:  routes.register() (to register endpoints)
-	  end
+      Conductor->>Conductor:  load_transports()
+
+			Note right of Conductor: If the admin server is enabled, plug-in routes are added
+			Conductor->>AdminServer:  create admin server if enabled
+
+    StartUp->>Conductor: start()
+      Conductor->>Conductor:  start_transports()
+      Conductor->>AdminServer:  start()
+
+    StartUp->>AdminServer:  setup_context() (called on each request)
+	    AdminServer->>PluginRegistry:  register_admin_routes()
+	    loop for each external plug-in
+	      PluginRegistry->>ExternalPlugIn:  routes.register() (to register endpoints)
+	    end
 ```
 
 ## Developing a New Plug-In
