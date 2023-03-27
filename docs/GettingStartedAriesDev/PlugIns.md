@@ -125,8 +125,8 @@ sequenceDiagram
       Conductor->>Conductor:  start_transports()
       Conductor->>AdminServer:  start()
 
-    Note right of Startup the following represents an<br/>admin server api request
     Startup->>AdminServer:  setup_context() (called on each request)
+      Note right of Startup the following represents an<br/>admin server api request
       AdminServer->>PluginRegistry:  register_admin_routes()
       loop for each external plug-in
         PluginRegistry->>ExternalPlugIn:  routes.register() (to register endpoints)
