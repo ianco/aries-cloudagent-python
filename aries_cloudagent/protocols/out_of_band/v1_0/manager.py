@@ -562,6 +562,8 @@ class OutOfBandManager(BaseConnectionManager):
 
         conn_rec = None
 
+        print("receive connection with public_did:", public_did)
+
         # Find existing connection - only if started by an invitation with Public DID
         # (or did:peer) and use_existing_connection is true
         if (
@@ -571,10 +573,19 @@ class OutOfBandManager(BaseConnectionManager):
                 "Trying to find existing connection for oob invitation with "
                 f"did {public_did}"
             )
+            print(
+                "Trying to find existing connection for oob invitation with "
+                f"did {public_did}"
+            )
+            if public_did.startswith("did:peer:4"):
+                search_public_did = self.long_did_peer_to_short(public_did)
+            else:
+                search_public_did = public_did
             async with self._profile.session() as session:
                 conn_rec = await ConnRecord.find_existing_connection(
-                    session=session, their_public_did=public_did
+                    session=session, their_public_did=search_public_did
                 )
+            print("Found conn_rec:", conn_rec)
 
         oob_record = OobRecord(
             role=OobRecord.ROLE_RECEIVER,
@@ -586,6 +597,7 @@ class OutOfBandManager(BaseConnectionManager):
 
         # Try to reuse the connection. If not accepted sets the conn_rec to None
         if conn_rec and not invitation.requests_attach:
+            print("Try ro reuse connection ...")
             oob_record = await self._handle_hanshake_reuse(
                 oob_record, conn_rec, get_version_from_message(invitation)
             )
@@ -593,8 +605,12 @@ class OutOfBandManager(BaseConnectionManager):
             LOGGER.warning(
                 f"Connection reuse request finished with state {oob_record.state}"
             )
+            print(
+                f"Connection reuse request finished with state {oob_record.state}"
+            )
 
             if oob_record.state == OobRecord.STATE_ACCEPTED:
+                print("Using oob_record:", oob_record)
                 return oob_record
             else:
                 # Set connection record to None if not accepted
@@ -603,6 +619,7 @@ class OutOfBandManager(BaseConnectionManager):
 
         # Try to create a connection. Either if the reuse failed or we didn't have a
         # connection yet. Throws an error if connection could not be created
+        print("Create a new connection ...")
         if not conn_rec and invitation.handshake_protocols:
             oob_record = await self._perform_handshake(
                 oob_record=oob_record,
@@ -612,6 +629,9 @@ class OutOfBandManager(BaseConnectionManager):
                 service_accept=service_accept,
             )
             LOGGER.debug(
+                f"Performed handshake with connection {oob_record.connection_id}"
+            )
+            print(
                 f"Performed handshake with connection {oob_record.connection_id}"
             )
             # re-fetch connection record
@@ -624,11 +644,13 @@ class OutOfBandManager(BaseConnectionManager):
         # we can leverage the connection for all exchanges. Otherwise we need to keep it
         # around for the connectionless exchange
         if conn_rec:
+            print("Reuse conn_rec:", conn_rec)
             oob_record.state = OobRecord.STATE_DONE
             async with self.profile.session() as session:
                 await oob_record.emit_event(session)
                 await oob_record.delete_record(session)
         else:
+            print("Create a new conn_rec ...")
             oob_record.state = OobRecord.STATE_PREPARE_RESPONSE
             async with self.profile.session() as session:
                 await oob_record.save(session)
@@ -636,6 +658,10 @@ class OutOfBandManager(BaseConnectionManager):
         # Handle any attachments
         if invitation.requests_attach:
             LOGGER.debug(
+                f"Process attached messages for oob exchange {oob_record.oob_id} "
+                f"(connection_id {oob_record.connection_id})"
+            )
+            print(
                 f"Process attached messages for oob exchange {oob_record.oob_id} "
                 f"(connection_id {oob_record.connection_id})"
             )
@@ -656,6 +682,7 @@ class OutOfBandManager(BaseConnectionManager):
 
             if not conn_rec:
                 # Create and store new key for connectionless exchange
+                print("Create and store new key for connectionless exchange")
                 async with self.profile.session() as session:
                     wallet = session.inject(BaseWallet)
                     connection_key = await wallet.create_signing_key(ED25519)
@@ -672,6 +699,7 @@ class OutOfBandManager(BaseConnectionManager):
                     )
                     await oob_record.save(session)
 
+            print("_process_request_attach()", oob_record)
             await self._process_request_attach(oob_record)
 
         return oob_record
