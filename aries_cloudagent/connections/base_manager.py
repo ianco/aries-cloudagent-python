@@ -383,7 +383,10 @@ class BaseConnectionManager:
         async with self._profile.session() as session:
             storage: BaseStorage = session.inject(BaseStorage)
             record = await storage.find_record(self.RECORD_TYPE_DID_KEY, {"key": key})
-        return record.tags["did"]
+        ret_did = record.tags["did"]
+        if ret_did.startswith("did:peer:4"):
+            ret_did = self.long_did_peer_to_short(ret_did)
+        return ret_did
 
     async def remove_keys_for_did(self, did: str):
         """Remove all keys associated with a DID.
