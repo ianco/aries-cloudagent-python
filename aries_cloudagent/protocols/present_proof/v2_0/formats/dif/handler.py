@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from marshmallow import RAISE
 
+from aries_cloudagent.anoncreds.holder import AnonCredsHolder
+
 from ......messaging.base_handler import BaseResponder
 from ......messaging.decorators.attach_decorator import AttachDecorator
 from ......storage.error import StorageNotFoundError
@@ -173,179 +175,183 @@ class DIFPresFormatHandler(V20PresFormatHandler):
         input_descriptors = pres_definition.input_descriptors
         claim_fmt = pres_definition.fmt
         dif_handler_proof_type = None
-        try:
-            holder = self._profile.inject(VCHolder)
-            record_ids = set()
-            credentials_list = []
-            for input_descriptor in input_descriptors:
-                proof_type = None
-                limit_disclosure = input_descriptor.constraint.limit_disclosure and (
-                    input_descriptor.constraint.limit_disclosure == "required"
-                )
-                uri_list = []
-                one_of_uri_groups = []
-                if input_descriptor.schemas:
-                    if input_descriptor.schemas.oneof_filter:
-                        one_of_uri_groups = (
-                            await self.retrieve_uri_list_from_schema_filter(
-                                input_descriptor.schemas.uri_groups
-                            )
-                        )
-                    else:
-                        schema_uris = input_descriptor.schemas.uri_groups[0]
-                        for schema_uri in schema_uris:
-                            if schema_uri.required is None:
-                                required = True
-                            else:
-                                required = schema_uri.required
-                            if required:
-                                uri_list.append(schema_uri.uri)
-                if len(uri_list) == 0:
-                    uri_list = None
-                if len(one_of_uri_groups) == 0:
-                    one_of_uri_groups = None
-                if limit_disclosure:
-                    proof_type = [BbsBlsSignature2020.signature_type]
-                    dif_handler_proof_type = BbsBlsSignature2020.signature_type
-                if claim_fmt:
-                    if claim_fmt.ldp_vp:
-                        if "proof_type" in claim_fmt.ldp_vp:
-                            proof_types = claim_fmt.ldp_vp.get("proof_type")
-                            if limit_disclosure and (
-                                BbsBlsSignature2020.signature_type not in proof_types
-                            ):
-                                raise V20PresFormatHandlerError(
-                                    "Verifier submitted presentation request with "
-                                    "limit_disclosure [selective disclosure] "
-                                    "option but verifier does not support "
-                                    "BbsBlsSignature2020 format"
-                                )
-                            elif (
-                                len(proof_types) == 1
-                                and (
-                                    BbsBlsSignature2020.signature_type
-                                    not in proof_types
-                                )
-                                and (
-                                    Ed25519Signature2018.signature_type
-                                    not in proof_types
-                                )
-                                and (
-                                    Ed25519Signature2020.signature_type
-                                    not in proof_types
-                                )
-                            ):
-                                raise V20PresFormatHandlerError(
-                                    "Only BbsBlsSignature2020 and/or "
-                                    "Ed25519Signature2018 and/or "
-                                    "Ed25519Signature2018 and/or "
-                                    "Ed25519Signature2020 signature types "
-                                    "are supported"
-                                )
-                            elif (
-                                len(proof_types) >= 2
-                                and (
-                                    BbsBlsSignature2020.signature_type
-                                    not in proof_types
-                                )
-                                and (
-                                    Ed25519Signature2018.signature_type
-                                    not in proof_types
-                                )
-                                and (
-                                    Ed25519Signature2020.signature_type
-                                    not in proof_types
-                                )
-                            ):
-                                raise V20PresFormatHandlerError(
-                                    "Only BbsBlsSignature2020, Ed25519Signature2018 and "
-                                    "Ed25519Signature2020 signature types "
-                                    "are supported"
-                                )
-                            else:
-                                for proof_format in proof_types:
-                                    if (
-                                        proof_format
-                                        == Ed25519Signature2018.signature_type
-                                    ):
-                                        proof_type = [
-                                            Ed25519Signature2018.signature_type
-                                        ]
-                                        dif_handler_proof_type = (
-                                            Ed25519Signature2018.signature_type
-                                        )
-                                        break
-                                    elif (
-                                        proof_format
-                                        == BbsBlsSignature2020.signature_type
-                                    ):
-                                        proof_type = [
-                                            BbsBlsSignature2020.signature_type
-                                        ]
-                                        dif_handler_proof_type = (
-                                            BbsBlsSignature2020.signature_type
-                                        )
-                                        break
-                    else:
-                        raise V20PresFormatHandlerError(
-                            "Currently, only ldp_vp with "
-                            "BbsBlsSignature2020, Ed25519Signature2018 and "
-                            "Ed25519Signature2020 signature types are supported"
-                        )
-                if one_of_uri_groups:
-                    records = []
-                    cred_group_record_ids = set()
-                    for uri_group in one_of_uri_groups:
-                        search = holder.search_credentials(
-                            proof_types=proof_type, pd_uri_list=uri_group
-                        )
-                        max_results = 1000
-                        cred_group = await search.fetch(max_results)
-                        (
-                            cred_group_vcrecord_list,
-                            cred_group_vcrecord_ids_set,
-                        ) = await self.process_vcrecords_return_list(
-                            cred_group, cred_group_record_ids
-                        )
-                        cred_group_record_ids = cred_group_vcrecord_ids_set
-                        records = records + cred_group_vcrecord_list
-                else:
-                    search = holder.search_credentials(
-                        proof_types=proof_type, pd_uri_list=uri_list
+        if claim_fmt.ldp_vp:
+            try:
+                holder = self._profile.inject(VCHolder)
+                record_ids = set()
+                credentials_list = []
+                for input_descriptor in input_descriptors:
+                    proof_type = None
+                    limit_disclosure = input_descriptor.constraint.limit_disclosure and (
+                        input_descriptor.constraint.limit_disclosure == "required"
                     )
-                    # Defaults to page_size but would like to include all
-                    # For now, setting to 1000
-                    max_results = 1000
-                    records = await search.fetch(max_results)
-                # Avoiding addition of duplicate records
-                (
-                    vcrecord_list,
-                    vcrecord_ids_set,
-                ) = await self.process_vcrecords_return_list(records, record_ids)
-                record_ids = vcrecord_ids_set
-                credentials_list = credentials_list + vcrecord_list
-        except StorageNotFoundError as err:
-            raise V20PresFormatHandlerError(err)
-        except TypeError as err:
-            LOGGER.error(str(err))
-            responder = self._profile.inject_or(BaseResponder)
-            if responder:
-                report = ProblemReport(
-                    description={
-                        "en": (
-                            "Presentation request not properly formatted,"
-                            " TypeError raised on Holder agent."
-                        ),
-                        "code": ProblemReportReason.ABANDONED.value,
-                    }
-                )
-                if pres_ex_record.thread_id:
-                    report.assign_thread_id(pres_ex_record.thread_id)
-                await responder.send_reply(
-                    report, connection_id=pres_ex_record.connection_id
-                )
-                return
-
+                    uri_list = []
+                    one_of_uri_groups = []
+                    if input_descriptor.schemas:
+                        if input_descriptor.schemas.oneof_filter:
+                            one_of_uri_groups = (
+                                await self.retrieve_uri_list_from_schema_filter(
+                                    input_descriptor.schemas.uri_groups
+                                )
+                            )
+                        else:
+                            schema_uris = input_descriptor.schemas.uri_groups[0]
+                            for schema_uri in schema_uris:
+                                if schema_uri.required is None:
+                                    required = True
+                                else:
+                                    required = schema_uri.required
+                                if required:
+                                    uri_list.append(schema_uri.uri)
+                    if len(uri_list) == 0:
+                        uri_list = None
+                    if len(one_of_uri_groups) == 0:
+                        one_of_uri_groups = None
+                    if limit_disclosure:
+                        proof_type = [BbsBlsSignature2020.signature_type]
+                        dif_handler_proof_type = BbsBlsSignature2020.signature_type
+                    if claim_fmt:
+                        if claim_fmt.ldp_vp:
+                            if "proof_type" in claim_fmt.ldp_vp:
+                                proof_types = claim_fmt.ldp_vp.get("proof_type")
+                                if limit_disclosure and (
+                                    BbsBlsSignature2020.signature_type not in proof_types
+                                ):
+                                    raise V20PresFormatHandlerError(
+                                        "Verifier submitted presentation request with "
+                                        "limit_disclosure [selective disclosure] "
+                                        "option but verifier does not support "
+                                        "BbsBlsSignature2020 format"
+                                    )
+                                elif (
+                                    len(proof_types) == 1
+                                    and (
+                                        BbsBlsSignature2020.signature_type
+                                        not in proof_types
+                                    )
+                                    and (
+                                        Ed25519Signature2018.signature_type
+                                        not in proof_types
+                                    )
+                                    and (
+                                        Ed25519Signature2020.signature_type
+                                        not in proof_types
+                                    )
+                                ):
+                                    raise V20PresFormatHandlerError(
+                                        "Only BbsBlsSignature2020 and/or "
+                                        "Ed25519Signature2018 and/or "
+                                        "Ed25519Signature2018 and/or "
+                                        "Ed25519Signature2020 signature types "
+                                        "are supported"
+                                    )
+                                elif (
+                                    len(proof_types) >= 2
+                                    and (
+                                        BbsBlsSignature2020.signature_type
+                                        not in proof_types
+                                    )
+                                    and (
+                                        Ed25519Signature2018.signature_type
+                                        not in proof_types
+                                    )
+                                    and (
+                                        Ed25519Signature2020.signature_type
+                                        not in proof_types
+                                    )
+                                ):
+                                    raise V20PresFormatHandlerError(
+                                        "Only BbsBlsSignature2020, Ed25519Signature2018 and "
+                                        "Ed25519Signature2020 signature types "
+                                        "are supported"
+                                    )
+                                else:
+                                    for proof_format in proof_types:
+                                        if (
+                                            proof_format
+                                            == Ed25519Signature2018.signature_type
+                                        ):
+                                            proof_type = [
+                                                Ed25519Signature2018.signature_type
+                                            ]
+                                            dif_handler_proof_type = (
+                                                Ed25519Signature2018.signature_type
+                                            )
+                                            break
+                                        elif (
+                                            proof_format
+                                            == BbsBlsSignature2020.signature_type
+                                        ):
+                                            proof_type = [
+                                                BbsBlsSignature2020.signature_type
+                                            ]
+                                            dif_handler_proof_type = (
+                                                BbsBlsSignature2020.signature_type
+                                            )
+                                            break
+                        elif claim_fmt.di_vc:
+                            pass
+                        else:
+                            raise V20PresFormatHandlerError(
+                                "Currently, only ldp_vp with "
+                                "BbsBlsSignature2020, Ed25519Signature2018 and "
+                                "Ed25519Signature2020 signature types are supported"
+                            )
+                    if one_of_uri_groups:
+                        records = []
+                        cred_group_record_ids = set()
+                        for uri_group in one_of_uri_groups:
+                            search = holder.search_credentials(
+                                proof_types=proof_type, pd_uri_list=uri_group
+                            )
+                            max_results = 1000
+                            cred_group = await search.fetch(max_results)
+                            (
+                                cred_group_vcrecord_list,
+                                cred_group_vcrecord_ids_set,
+                            ) = await self.process_vcrecords_return_list(
+                                cred_group, cred_group_record_ids
+                            )
+                            cred_group_record_ids = cred_group_vcrecord_ids_set
+                            records = records + cred_group_vcrecord_list
+                    else:
+                        search = holder.search_credentials(
+                            proof_types=proof_type, pd_uri_list=uri_list
+                        )
+                        # Defaults to page_size but would like to include all
+                        # For now, setting to 1000
+                        max_results = 1000
+                        records = await search.fetch(max_results)
+                    # Avoiding addition of duplicate records
+                    (
+                        vcrecord_list,
+                        vcrecord_ids_set,
+                    ) = await self.process_vcrecords_return_list(records, record_ids)
+                    record_ids = vcrecord_ids_set
+                    credentials_list = credentials_list + vcrecord_list
+            except StorageNotFoundError as err:
+                raise V20PresFormatHandlerError(err)
+            except TypeError as err:
+                LOGGER.error(str(err))
+                responder = self._profile.inject_or(BaseResponder)
+                if responder:
+                    report = ProblemReport(
+                        description={
+                            "en": (
+                                "Presentation request not properly formatted,"
+                                " TypeError raised on Holder agent."
+                            ),
+                            "code": ProblemReportReason.ABANDONED.value,
+                        }
+                    )
+                    if pres_ex_record.thread_id:
+                        report.assign_thread_id(pres_ex_record.thread_id)
+                    await responder.send_reply(
+                        report, connection_id=pres_ex_record.connection_id
+                    )
+                    return
+        elif claim_fmt.di_vc:
+            holder = AnonCredsHolder(self._profile)
         dif_handler = DIFPresExchHandler(
             self._profile,
             pres_signing_did=issuer_id,
