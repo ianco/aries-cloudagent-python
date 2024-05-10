@@ -715,6 +715,13 @@ async def present_proof_credentials_list(request: web.BaseRequest):
                                             BbsBlsSignature2020.signature_type
                                         ]
                                         break
+                    elif claim_fmt.di_vc:
+                        # raise web.HTTPBadRequest(
+                        #     reason=(
+                        #         "VC DI Not supported for credential fetch"
+                        #     )
+                        # )
+                        pass
                     else:
                         raise web.HTTPBadRequest(
                             reason=(
