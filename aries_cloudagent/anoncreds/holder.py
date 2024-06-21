@@ -34,6 +34,7 @@ from ..core.profile import Profile
 from ..ledger.base import BaseLedger
 from ..storage.vc_holder.base import VCHolder
 from ..storage.vc_holder.vc_record import VCRecord
+from ..storage.vc_holder.xform import VC_CRED_RECORD_TYPE
 from ..vc.vc_ld import VerifiableCredential
 from ..vc.ld_proofs import DocumentLoader
 from ..wallet.error import WalletNotFoundError
@@ -218,7 +219,7 @@ class AnonCredsHolder:
         except AnoncredsError as err:
             raise AnonCredsHolderError("Error processing received credential") from err
 
-        return await self._finish_store_credential(
+        (cred_id, _) = await self._finish_store_credential(
             credential_definition,
             cred_recvd,
             credential_request_metadata,
@@ -226,6 +227,8 @@ class AnonCredsHolder:
             credential_id,
             rev_reg_def,
         )
+
+        return cred_id
 
     async def _finish_store_credential(
         self,
@@ -235,7 +238,7 @@ class AnonCredsHolder:
         credential_attr_mime_types: dict = None,
         credential_id: str = None,
         rev_reg_def: dict = None,
-    ) -> str:
+    ) -> (str, dict):
         credential_data = cred_recvd.to_dict()
         schema_id = cred_recvd.schema_id
         schema_id_parts = re.match(r"^(\w+):2:([^:]+):([^:]+)$", schema_id)
@@ -289,7 +292,7 @@ class AnonCredsHolder:
         except AskarError as err:
             raise AnonCredsHolderError("Error storing credential") from err
 
-        return credential_id
+        return (credential_id, tags)
 
     async def store_credential_w3c(
         self,
@@ -339,7 +342,7 @@ class AnonCredsHolder:
         except AnoncredsError as err:
             raise AnonCredsHolderError("Error processing received credential") from err
 
-        credential_id = await self._finish_store_credential(
+        (credential_id, cred_tags) = await self._finish_store_credential(
             credential_definition,
             cred_recvd,
             credential_request_metadata,
@@ -376,7 +379,7 @@ class AnonCredsHolder:
             cred_value=cred_w3c_recvd_vc.serialize(),
             given_id=cred_w3c_recvd_vc.id,
             record_id=credential_id,
-            cred_tags=None,  # Tags should be derived from credential values
+            cred_tags=cred_tags,
         )
 
         # save credential in storage
@@ -490,6 +493,17 @@ class AnonCredsHolder:
                         "interval": presentation_request.get("non_revoked"),
                         "presentation_referents": {reft},
                     }
+
+            # just for S&G let's see if we can find the W3C credentials with the same params
+            async with self.profile.session() as session:
+                vc_holder = session.inject(VCHolder)
+                search_creds = vc_holder.search_credentials(
+                    tag_query=tag_filter,
+                )
+                records = await search_creds.fetch(max_count=100)
+                for row in records:
+                    # TODO convert to legacy format to include in proof request
+                    print(">>> got W3C cred:", row)
 
         for cred in creds.values():
             cred["presentation_referents"] = list(cred["presentation_referents"])

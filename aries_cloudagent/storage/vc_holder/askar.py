@@ -124,6 +124,10 @@ class AskarVCHolder(VCHolder):
             for k, v in query.items():
                 if isinstance(v, (list, set)) and k != "$exist":
                     result[k] = [_make_custom_query(cl) for cl in v]
+                elif k == "$exist":
+                    result[k] = []
+                    for vv in v:
+                        result[k].append(f"cstm:{vv}")
                 elif k.startswith("$"):
                     result[k] = v
                 else:
