@@ -465,6 +465,7 @@ class DIFPresFormatHandler(V20PresFormatHandler):
         pres_request = pres_ex_record.pres_request.attachment(
             DIFPresFormatHandler.format
         )
+        print(">>> verifying dif proof:", dif_proof)
         pres_ver_result = None
         if isinstance(dif_proof, Sequence):
             if len(dif_proof) == 0:
