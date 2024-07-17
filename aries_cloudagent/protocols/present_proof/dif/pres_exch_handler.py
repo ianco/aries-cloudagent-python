@@ -1223,6 +1223,7 @@ class DIFPresExchHandler:
         Returns:
             Union[Sequence[dict], dict]: VerifiablePresentation.
         """
+        print(">>> create_vp() with:", credentials)
         document_loader = self.profile.inject(DocumentLoader)
         req = await self.make_requirement(
             srs=pd.submission_requirements, descriptors=pd.input_descriptors
@@ -1327,6 +1328,7 @@ class DIFPresExchHandler:
             result_vp.append(signed_vp)
         if len(result_vp) == 1:
             return result_vp[0]
+        print(">>> returns:", result_vp)
         return result_vp
 
     def __add_dif_fields_to_vp(

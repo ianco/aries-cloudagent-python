@@ -379,7 +379,9 @@ class DIFPresFormatHandler(V20PresFormatHandler):
                 records_filter=limit_record_ids,
                 is_holder_override=True,
             )
-            return self.get_format_data(PRES_20, pres)
+            tmp = self.get_format_data(PRES_20, pres)
+            print(">>> formatted:", tmp)
+            return tmp
         except DIFPresExchError as err:
             LOGGER.error(str(err))
             responder = self._profile.inject_or(BaseResponder)
